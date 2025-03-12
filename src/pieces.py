@@ -23,6 +23,10 @@ class Piece(ABC):
         if self.bitboard & mask_from:  # Verifica si la pieza está en 'from_square'
             self.bitboard &= ~mask_from  # Apaga la casilla de origen
             self.bitboard |= mask_to  # Enciende la casilla destino
+    
+    def _bitscan_forward(self, bitboard):
+        """Encuentra el índice del bit más bajo en el bitboard"""
+        return np.int64(np.log2(bitboard & -bitboard))
             
         
 
@@ -91,6 +95,42 @@ class Knight(Piece):
             
         return moves, capture
 
+class Bishop(Piece):
+    """Clase para alfiles"""
+    
+    def generate_moves(self, from_square, occupied, enemy):
+        """Genera los movimientos del alfil"""
+        
+        m = Constants.NUM_COLS
+        longitud = Constants.NUM_SQUARES
+        
+        _, col = divmod(from_square, m)
+        
+        # Modificar la diagonal principal (↘) moviéndonos en pasos de (m+1)
+        diag_pos = from_square + (m + 1)
+        while diag_pos < longitud and diag_pos % m >= col:
+            valor |= (1 << diag_pos)
+            diag_pos += m + 1
+
+        # Modificar la diagonal principal (↘) hacia atrás
+        diag_pos = from_square - (m + 1)
+        while diag_pos >= 0 and diag_pos % m <= col:
+            valor |= (1 << diag_pos)
+            diag_pos -= m + 1
+
+        # Modificar la diagonal secundaria (↙) moviéndonos en pasos de (m-1)
+        diag_pos = from_square + (m - 1)
+        while diag_pos < longitud and diag_pos % m <= col:
+            valor |= (1 << diag_pos)
+            diag_pos += m - 1
+
+        # Modificar la diagonal secundaria (↙) hacia atrás
+        diag_pos = from_square - (m - 1)
+        while diag_pos >= 0 and diag_pos % m >= col:
+            valor |= (1 << diag_pos)
+            diag_pos -= m - 1
+        
+
             
 if __name__ == "__main__":
     """Función de prueba"""
@@ -102,23 +142,14 @@ if __name__ == "__main__":
             print(" ".join(bits[(fila) * 8:(fila + 1) * 8]))  # Dividimos en filas de 8
     
     
-    # Caball0 blanco en b1 a g1
-    knight = Knight("white", 1 << 56)
-    printbit(knight.bitboard)
+    # Bishop
+    bishop = Bishop("white", 0x0000000000000020)
+    print("Alfil blanco en e4")
+    printbit(bishop.bitboard)
     print("\n\n")
-    
-    moves, caputes = knight.generate_moves(56, 0, 0)
-    print("Movimientos posibles del caballo:")
+    moves, capture = bishop.generate_moves(36, 0x0000000000000000, 0x0000000000000000)
+    print("Movimientos")
     printbit(moves)
     print("\n\n")
-    print("Capturas posibles del caballo:")
-    printbit(caputes)
-    print("\n\n")
-    
-    if (1 << 6) & moves:
-        print("El caballo puede moverse a la posición 6")
-        knight.move(56, 6)
-        printbit(knight.bitboard)
-    else:
-        print("El caballo no puede moverse a la posición 6")
-        printbit(knight.bitboard)
+    print("Capturas")
+    printbit(capture)
