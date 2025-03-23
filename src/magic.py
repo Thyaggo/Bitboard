@@ -62,22 +62,22 @@ def mask_rook_attacks(square, edge: bool=False, bitscan: bool =False, ray: list 
     tr = square // 8
     tf = square % 8
     
-    if "north" in ray:
+    if "south" in ray:
     # Máscara para as linhas e colunas
         for r in range(tr + 1, 7 + edges):
-            north |= (np.uint64(1) << np.uint64(r * 8 + tf))
-
-    if "south" in ray:
-        for r in range(tr - 1, 0 - edges, -1):
             south |= (np.uint64(1) << np.uint64(r * 8 + tf))
 
-    if "east" in ray:
-        for f in range(tf + 1, 7 + edges):
-            east |= (np.uint64(1) << np.uint64(tr * 8 + f))
+    if "north" in ray:
+        for r in range(tr - 1, 0 - edges, -1):
+            north |= (np.uint64(1) << np.uint64(r * 8 + tf))
 
     if "west" in ray:
-        for f in range(tf - 1, 0 - edges, -1):
+        for f in range(tf + 1, 7 + edges):
             west |= (np.uint64(1) << np.uint64(tr * 8 + f))
+
+    if "east" in ray:
+        for f in range(tf - 1, 0 - edges, -1):
+            east |= (np.uint64(1) << np.uint64(tr * 8 + f))
 
     # Retorna o mapa de ataques
     if bitscan:
@@ -111,13 +111,25 @@ def get_ls1b_index(bitboard):
     """Obtiene el índice del bit menos significativo activo (LSB)."""
     return count_bits((bitboard & -bitboard) - 1)
 
+def get_ms1b_index(bitboard):
+    """Obtiene el índice del bit más significativo activo (MSB)."""
+    if bitboard == 0:
+        return None
+    
+    position = 0
+    while bitboard > 0:
+        bitboard >>= np.uint64(1)
+        position += 1
+        
+    return position - 1
+
 def set_bit(bitboard, square):
     """Activa el bit en la posición 'square'."""
-    return bitboard | (1 << square)
+    return bitboard | np.uint64((1 << square))
 
 def pop_bit(bitboard, square):
     """Desactiva el bit en la posición 'square'."""
-    return bitboard & ~(1 << square)
+    return bitboard & ~np.uint64((1 << square))
 
 def set_occupancy(index, bits_in_mask, attack_mask):
     """Genera el mapa de ocupación basado en el índice y la máscara de ataque."""
@@ -133,7 +145,7 @@ def set_occupancy(index, bits_in_mask, attack_mask):
         # Verificar si el bit en la posición 'count' de 'index' está activo
         if index & (1 << count):
             # Activar el bit correspondiente en el mapa de ocupación
-            occupancy |= (1 << square)
+            occupancy |= (np.uint64(1) << np.uint64(square))
             
     return occupancy
 
@@ -150,9 +162,12 @@ def valid_moves(occupancy: np.uint64, square: int, piece_mask_func: Callable):
         
         # The first blocker, if any, is the least significant one-bit of the intersection
         if blokers:
-            first_blocker = get_ls1b_index(blokers)
+            if direction in ["south", "east", "southeast", "southwest"]:
+                first_blocker = get_ms1b_index(blokers)
+            else:
+                first_blocker = get_ls1b_index(blokers)
             # Only if the blocker is not the last square
-            valid = ray ^ piece_mask_func(first_blocker, egde=True, bitscan=True, ray=[direction])[direction]
+            valid = ray ^ piece_mask_func(first_blocker, edge=True, bitscan=True, ray=[direction])[direction]
             valid_move |= valid
         else:
             valid_move |= ray
@@ -171,5 +186,7 @@ if "__main__" == __name__:
             print(row)
         print("\n")
     
-    mask = mask_rook_attacks(28)
-    print_bitboard(set_occupancy(3 ,count_bits(mask), mask))
+    mask = mask_rook_attacks(28, edge=True)
+    blocker = mask & np.uint64(0b1010101010101010101010101010101010101010101010101010101010101010)
+    print_bitboard(blocker)
+    print_bitboard(valid_moves(blocker, 28, mask_rook_attacks))
