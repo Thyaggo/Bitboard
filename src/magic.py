@@ -175,6 +175,10 @@ def valid_moves(occupancy: np.uint64, square: int, piece_mask_func: Callable):
     # Movimientos válidos
     return valid_move
 
+def magic_index(occupancy, magic, bits):
+    """Calcula el índice mágico."""
+    return (occupancy * magic) >> (64 - bits)
+
 if "__main__" == __name__:
     
     def print_bitboard(board):
