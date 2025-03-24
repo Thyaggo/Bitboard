@@ -1,5 +1,6 @@
 import numpy as np
 from typing import Callable
+import random
 
 def mask_bishop_attacks(square : int, edge: bool =False, bitscan: bool =False, ray: list =["northwest", "northeast", "southwest", "southeast"]):
     # Inicializa o bitboard de ataques
@@ -175,9 +176,13 @@ def valid_moves(occupancy: np.uint64, square: int, piece_mask_func: Callable):
     # Movimientos válidos
     return valid_move
 
-def magic_index(occupancy, magic, bits):
-    """Calcula el índice mágico."""
-    return (occupancy * magic) >> (64 - bits)
+def find_magic_index(occupancy, magic):
+    """Encuentra el índice mágico."""
+    attemps = 10000
+    for _ in range(attemps):
+        magic_number = np.uint64(random.getrandbits(64) & random.getrandbits(64) & random.getrandbits(64))
+        
+    return False
 
 if "__main__" == __name__:
     
